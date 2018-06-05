@@ -26,6 +26,10 @@ public class ControlFlowNode {
         return nodeID;
     }
 
+    public static void resetNodeID() {
+        nodeID = 0;
+    }
+
     private FlowType type = null;
     private ControlFlowNode trueOut = null;
     private ControlFlowNode falseOut = null;

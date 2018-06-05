@@ -49,7 +49,7 @@ public class Parser {
             }
             struct.print(0);
             ControlFlowNode cfn = struct.flow(null);
-            cfn.enumerate();
+            cfn = combineP1_2(cfn);
             PrintWriter writer = new PrintWriter(args[1], "UTF-8");
             writer.println(xmlgraph(cfn));
             writer.close();
@@ -58,6 +58,46 @@ public class Parser {
         } catch (UnsupportedEncodingException ex) {
             System.out.println("Error writing file.");
         }
+    }
+
+    private static ControlFlowNode combineP1(ControlFlowNode[] list) {
+        for (ControlFlowNode c : list) {
+            if (c.getType() == FlowType.PROCEDURE && c.getOut() != null && c.getOut().getType() == FlowType.PROCEDURE) {
+                ControlFlowNode x = new ControlFlowNode();
+                x.setType(FlowType.PROCEDURE);
+                x.setOut(c.getOut().getOut());
+                x.setContent(c.getContent() + "\n" + c.getOut().getContent());
+                for (ControlFlowNode c2 : list) {
+                    if (c2.getOut() == c) {
+                        c2.setOut(x);
+                    }
+                    if (c2.getTrueOut() == c) {
+                        c2.setTrueOut(x);
+                    }
+                    if (c2.getFalseOut() == c) {
+                        c2.setFalseOut(x);
+                    }
+                }
+                if (list[0] == c) {
+                    return x;
+                } else {
+                    return list[0];
+                }
+            }
+        }
+        return list[0];
+    }
+
+    private static ControlFlowNode combineP1_2(ControlFlowNode origin) {
+        boolean change;
+        ControlFlowNode[] cfNodes = listFromOrigin(origin);
+        do {
+            int size = cfNodes.length;
+            origin = combineP1(cfNodes);
+            cfNodes = listFromOrigin(origin);
+            change = size > cfNodes.length;
+        } while (change);
+        return origin;
     }
 
     public static String node(String label, String id) {
@@ -171,10 +211,7 @@ public class Parser {
 //                }
 //            }
 //        }
-        origin.enumerate();
-        origin.unvisit();
-        ControlFlowNode[] cfNodes = new ControlFlowNode[ControlFlowNode.getNodeCount()];
-        origin.toList(cfNodes);
+        ControlFlowNode[] cfNodes = listFromOrigin(origin);
         for (ControlFlowNode i : cfNodes) {
             xmlBuilder.append(node(safeLabel(i.getContent()), i.getXmlID()));
             ControlFlowNode trueNode = i.getTrueOut();
@@ -197,6 +234,16 @@ public class Parser {
                 + "  </data>\r\n"
                 + "</graphml>\r\n");
         return xmlBuilder.toString();
+    }
+
+    public static ControlFlowNode[] listFromOrigin(ControlFlowNode origin) {
+        ControlFlowNode.resetNodeID();
+        origin.enumerate();
+        origin.unvisit();
+        ControlFlowNode[] cfNodes = new ControlFlowNode[ControlFlowNode.getNodeCount()];
+        origin.toList(cfNodes);
+        origin.unvisit();
+        return cfNodes;
     }
 
 }
