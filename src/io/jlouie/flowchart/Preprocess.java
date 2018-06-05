@@ -23,7 +23,7 @@ package io.jlouie.flowchart;
 public class Preprocess {
 
     public static String linuxEnding(String x) {
-        x = x.replaceAll("\n\r", "\n");
+        x = x.replaceAll("\r\n", "\n");
         return x.replaceAll("\r", "\n");
     }
 

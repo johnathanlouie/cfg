@@ -59,7 +59,7 @@ public class Code {
             int j = i;
             i = findFirstNonWhitespace(i);
             if (i == -1) {
-                System.out.println("Cannot find nonwhitespace. " + j + " of " + code.length());
+//                System.out.println("Cannot find nonwhitespace. " + j + " of " + code.length());
                 return a;
             }
             String s = whichKeyword(i);

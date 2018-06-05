@@ -141,7 +141,7 @@ public class DStructure {
             case D2:
                 if (struct.getType() == Type.WHILE) {
                     return whileFlow(out);
-                } else {
+                } else if (struct.getType() == Type.FOR) {
                     return forFlow(out);
                 }
             case D3:
@@ -206,7 +206,7 @@ public class DStructure {
         ControlFlowNode c;
         do {
             c = list.get(i).flow(out);
-            c.setOut(out);
+//            c.setOut(out);
             out = c;
             i--;
         } while (i >= 0);

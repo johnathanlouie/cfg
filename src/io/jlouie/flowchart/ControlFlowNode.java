@@ -22,13 +22,17 @@ package io.jlouie.flowchart;
  */
 public class ControlFlowNode {
 
-    private FlowType type;
+    public static int getNodeCount() {
+        return nodeID;
+    }
+
+    private FlowType type = null;
     private ControlFlowNode trueOut = null;
     private ControlFlowNode falseOut = null;
     private ControlFlowNode out = null;
     private String content;
     private boolean xmlVisited = false;
-    private String xmlID = null;
+    private int id;
 
     public FlowType getType() {
         return type;
@@ -43,6 +47,9 @@ public class ControlFlowNode {
     }
 
     public void setTrueOut(ControlFlowNode trueOut) {
+        if (type == null || type != FlowType.PREDICATE) {
+            throw new RuntimeException("node type is null set true");
+        }
         this.trueOut = trueOut;
     }
 
@@ -51,6 +58,9 @@ public class ControlFlowNode {
     }
 
     public void setFalseOut(ControlFlowNode falseOut) {
+        if (type == null || type != FlowType.PREDICATE) {
+            throw new RuntimeException("node type is null set false");
+        }
         this.falseOut = falseOut;
     }
 
@@ -59,6 +69,9 @@ public class ControlFlowNode {
     }
 
     public void setOut(ControlFlowNode out) {
+        if (type == null || type != FlowType.PROCEDURE) {
+            throw new RuntimeException("node type is null set out");
+        }
         this.out = out;
     }
 
@@ -70,35 +83,6 @@ public class ControlFlowNode {
         this.content = content;
     }
 
-    public void xml(String inID, String edgeLabel) {
-        //String xmlString = "";
-        if (!xmlVisited) {
-            xmlID = "n" + n++;
-            //String thisXML = node(content, xmlID);
-            xmlBuilder.append(node(content, xmlID));
-            //String nextXML = "";
-            if (out != null) {
-                //nextXML += out.xml(xmlID, "");
-                out.xml(xmlID, "");
-            }
-            if (trueOut != null) {
-//                nextXML += trueOut.xml(xmlID, "TRUE");
-                trueOut.xml(xmlID, "TRUE");
-            }
-            if (falseOut != null) {
-//                nextXML += falseOut.xml(xmlID, "FALSE");
-                falseOut.xml(xmlID, "FALSE");
-            }
-//            xmlString = thisXML + nextXML;
-        }
-        if (inID != null) {
-//            String edgeFromPrevious = edge(edgeLabel, "e" + e++, inID, xmlID);
-            xmlBuilder.append(edge(edgeLabel, "e" + e++, inID, xmlID));
-//            xmlString += edgeFromPrevious;
-        }
-//        return xmlString;
-    }
-
     public boolean isXmlVisited() {
         return xmlVisited;
     }
@@ -108,11 +92,56 @@ public class ControlFlowNode {
     }
 
     public String getXmlID() {
-        return xmlID;
+        return "n" + id;
     }
 
-    public void setXmlID(String xmlID) {
-        this.xmlID = xmlID;
+    private static int nodeID = 0;
+
+    public void unvisit() {
+        if (xmlVisited) {
+            xmlVisited = false;
+            if (out != null) {
+                out.unvisit();
+            }
+            if (trueOut != null) {
+                trueOut.unvisit();
+            }
+            if (falseOut != null) {
+                falseOut.unvisit();
+            }
+        }
+    }
+
+    public void toList(ControlFlowNode[] list) {
+        if (!xmlVisited) {
+            xmlVisited = true;
+            list[id] = this;
+            if (out != null) {
+                out.toList(list);
+            }
+            if (trueOut != null) {
+                trueOut.toList(list);
+            }
+            if (falseOut != null) {
+                falseOut.toList(list);
+            }
+        }
+    }
+
+    public void enumerate() {
+        if (!xmlVisited) {
+            xmlVisited = true;
+            id = nodeID++;
+            if (out != null) {
+                out.enumerate();
+            }
+            if (trueOut != null) {
+                trueOut.enumerate();
+            }
+            if (falseOut != null) {
+                falseOut.enumerate();
+            }
+        }
     }
 
 }
