@@ -1,3 +1,7 @@
+# NetBeans
+/nbproject/private/
+/build/
+
 # Compiled class file
 *.class
 
