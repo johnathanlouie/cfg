@@ -33,24 +33,20 @@ public class Parser {
      */
     public static void main(String[] args) {
         try {
-            System.out.println(args[0]);
-            System.out.println(args[1]);
-            System.out.println();
             String content = new Scanner(new File(args[0])).useDelimiter("\\Z").next();
-//            System.out.println(content);
-//            System.out.println();
             content = Preprocess.removeComments(Preprocess.linuxEnding(content));
-//            System.out.println(content);
             Code code = new Code(content);
             DStructure struct = code.getStructure();
             if (struct == null) {
                 System.out.println("Error in parsing.");
                 return;
             }
+            struct.condense();
             struct.print(0);
             ControlFlowNode cfn = struct.flow(null);
-            cfn = combineP1_2(cfn);
-            PrintWriter writer = new PrintWriter(args[1], "UTF-8");
+            labelAndCountNodes(cfn);
+//            cfn = combineP1_2(cfn);
+            PrintWriter writer = new PrintWriter(args[0] + ".graphml", "UTF-8");
             writer.println(xmlgraph(cfn));
             writer.close();
         } catch (FileNotFoundException ex) {
@@ -116,18 +112,18 @@ public class Parser {
     }
 
     public static String edge(String label, String id, String src, String dst) {
-        return "    <edge id=\"" + id + "\" source=\"" + src + "\" target=\"" + dst + "\">\r\n"
-                + "      <data key=\"d9\"/>\r\n"
-                + "      <data key=\"d10\">\r\n"
-                + "        <y:PolyLineEdge>\r\n"
-                + "          <y:Path sx=\"0.0\" sy=\"0.0\" tx=\"0.0\" ty=\"0.0\"/>\r\n"
-                + "          <y:LineStyle color=\"#000000\" type=\"line\" width=\"1.0\"/>\r\n"
-                + "          <y:Arrows source=\"none\" target=\"standard\"/>\r\n"
-                + "          <y:EdgeLabel alignment=\"center\" configuration=\"AutoFlippingLabel\" distance=\"2.0\" fontFamily=\"Dialog\" fontSize=\"12\" fontStyle=\"plain\" hasBackgroundColor=\"false\" hasLineColor=\"false\" height=\"18.701171875\" horizontalTextPosition=\"center\" iconTextGap=\"4\" modelName=\"custom\" preferredPlacement=\"anywhere\" ratio=\"0.5\" textColor=\"#000000\" verticalTextPosition=\"bottom\" visible=\"true\" width=\"50.69921875\" x=\"16.76238631931119\" xml:space=\"preserve\" y=\"75.18780899860948\">" + label + "<y:LabelModel><y:SmartEdgeLabelModel autoRotationEnabled=\"false\" defaultAngle=\"0.0\" defaultDistance=\"10.0\"/></y:LabelModel><y:ModelParameter><y:SmartEdgeLabelModelParameter angle=\"0.0\" distance=\"30.0\" distanceToCenter=\"true\" position=\"right\" ratio=\"0.5\" segment=\"0\"/></y:ModelParameter><y:PreferredPlacementDescriptor angle=\"0.0\" angleOffsetOnRightSide=\"0\" angleReference=\"absolute\" angleRotationOnRightSide=\"co\" distance=\"-1.0\" frozen=\"true\" placement=\"anywhere\" side=\"anywhere\" sideReference=\"relative_to_edge_flow\"/></y:EdgeLabel>\r\n"
-                + "          <y:BendStyle smoothed=\"false\"/>\r\n"
-                + "        </y:PolyLineEdge>\r\n"
-                + "      </data>\r\n"
-                + "    </edge>\r\n";
+        return "    <edge id=\"" + id + "\" source=\"" + src + "\" target=\"" + dst + "\">\n"
+                + "      <data key=\"d9\"/>\n"
+                + "      <data key=\"d10\">\n"
+                + "        <y:PolyLineEdge>\n"
+                + "          <y:Path sx=\"0.0\" sy=\"0.0\" tx=\"0.0\" ty=\"0.0\"/>\n"
+                + "          <y:LineStyle color=\"#000000\" type=\"line\" width=\"1.0\"/>\n"
+                + "          <y:Arrows source=\"none\" target=\"standard\"/>\n"
+                + "          <y:EdgeLabel alignment=\"center\" configuration=\"AutoFlippingLabel\" distance=\"2.0\" fontFamily=\"Dialog\" fontSize=\"12\" fontStyle=\"plain\" hasBackgroundColor=\"false\" hasLineColor=\"false\" height=\"18.701171875\" horizontalTextPosition=\"center\" iconTextGap=\"4\" modelName=\"centered\" modelPosition=\"center\" preferredPlacement=\"anywhere\" ratio=\"0.5\" textColor=\"#000000\" verticalTextPosition=\"bottom\" visible=\"true\" width=\"84.05078125\" x=\"104.98489379882812\" xml:space=\"preserve\" y=\"-3.90576171875\">" + label + "<y:PreferredPlacementDescriptor angle=\"0.0\" angleOffsetOnRightSide=\"0\" angleReference=\"absolute\" angleRotationOnRightSide=\"co\" distance=\"-1.0\" frozen=\"true\" placement=\"anywhere\" side=\"anywhere\" sideReference=\"relative_to_edge_flow\"/></y:EdgeLabel>\n"
+                + "          <y:BendStyle smoothed=\"false\"/>\n"
+                + "        </y:PolyLineEdge>\n"
+                + "      </data>\n"
+                + "    </edge>\n";
     }
 
     public static String safeLabel(String unsafe) {
@@ -137,15 +133,12 @@ public class Parser {
         unsafe = unsafe.replaceAll("\"", "&quot;");
         unsafe = unsafe.replaceAll("'", "&apos;");
         return unsafe;
-//        return "";
     }
 
     private static String xmlgraph(ControlFlowNode origin) {
         StringBuilder xmlBuilder = new StringBuilder();
         StringBuilder edgeBuilder = new StringBuilder();
-//        int nodeID = 1;
         int edgeID = 0;
-//        Stack<ControlFlowNode> toExplore = new Stack<>();
         xmlBuilder.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\r\n"
                 + "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\" xmlns:java=\"http://www.yworks.com/xml/yfiles-common/1.0/java\" xmlns:sys=\"http://www.yworks.com/xml/yfiles-common/markup/primitives/2.0\" xmlns:x=\"http://www.yworks.com/xml/yfiles-common/markup/2.0\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:y=\"http://www.yworks.com/xml/graphml\" xmlns:yed=\"http://www.yworks.com/xml/yed/3\" xsi:schemaLocation=\"http://graphml.graphdrawing.org/xmlns http://www.yworks.com/xml/schema/graphml/1.1/ygraphml.xsd\">\r\n"
                 + "  <!--Created by yEd 3.18.1-->\r\n"
@@ -162,55 +155,6 @@ public class Parser {
                 + "  <key for=\"edge\" id=\"d10\" yfiles.type=\"edgegraphics\"/>\r\n"
                 + "  <graph edgedefault=\"directed\" id=\"G\">\r\n"
                 + "    <data key=\"d0\"/>\r\n");
-//        ControlFlowNode i = origin;
-//        origin.setXmlID("n0");
-//        while (true) {
-//            if (!i.isXmlVisited()) {
-//                i.setXmlVisited(true);
-//                xmlBuilder.append(node(safeLabel(i.getContent()), i.getXmlID()));
-//                if (i.getType() == FlowType.PROCEDURE) {
-//                    ControlFlowNode next = i.getOut();
-//                    if (next == null) {
-//                        break;
-//                    }
-//                    if (next.getXmlID() == null) {
-//                        next.setXmlID("n" + nodeID++);
-//                    }
-//                    edgeBuilder.append(edge("", "e" + edgeID++, i.getXmlID(), next.getXmlID()));
-//                    i = next;
-//                } else if (i.getType() == FlowType.PREDICATE) {
-//                    ControlFlowNode trueNode = i.getTrueOut();
-//                    if (trueNode != null) {
-//                        if (trueNode.getXmlID() == null) {
-//                            trueNode.setXmlID("n" + nodeID++);
-//                        }
-//                        edgeBuilder.append(edge("TRUE", "e" + edgeID++, i.getXmlID(), trueNode.getXmlID()));
-//                    }
-//                    ControlFlowNode falseNode = i.getFalseOut();
-//                    if (falseNode != null) {
-//                        if (falseNode.getXmlID() == null) {
-//                            falseNode.setXmlID("n" + nodeID++);
-//                        }
-//                        edgeBuilder.append(edge("FALSE", "e" + edgeID++, i.getXmlID(), falseNode.getXmlID()));
-//                    }
-//                    toExplore.add(i);
-//                    i = trueNode;
-//                    if (i == null) {
-//                        break;
-//                    }
-//                } else {
-//                    System.out.println("flow type error");
-//                }
-//            } else {
-//                if (toExplore.isEmpty()) {
-//                    break;
-//                }
-//                i = toExplore.pop().getFalseOut();
-//                if (i == null) {
-//                    break;
-//                }
-//            }
-//        }
         ControlFlowNode[] cfNodes = listFromOrigin(origin);
         for (ControlFlowNode i : cfNodes) {
             xmlBuilder.append(node(safeLabel(i.getContent()), i.getXmlID()));
@@ -236,10 +180,14 @@ public class Parser {
         return xmlBuilder.toString();
     }
 
-    public static ControlFlowNode[] listFromOrigin(ControlFlowNode origin) {
+    public static void labelAndCountNodes(ControlFlowNode origin) {
         ControlFlowNode.resetNodeID();
         origin.enumerate();
         origin.unvisit();
+    }
+
+    public static ControlFlowNode[] listFromOrigin(ControlFlowNode origin) {
+        labelAndCountNodes(origin);
         ControlFlowNode[] cfNodes = new ControlFlowNode[ControlFlowNode.getNodeCount()];
         origin.toList(cfNodes);
         origin.unvisit();

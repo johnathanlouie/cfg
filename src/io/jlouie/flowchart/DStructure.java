@@ -152,6 +152,48 @@ public class DStructure {
         }
     }
 
+    public void condense() {
+        if (type == StructType.Pn) {
+            boolean found = false;
+            int j = 0;
+            for (int i = 0; i <= list.size(); i++) {
+                if (found) {
+                    if (i == list.size() || list.get(i).type != StructType.P1) {
+                        if (i - j > 1) {
+                            DStructure d = new DStructure();
+                            LanguageConstruct l = new LanguageConstruct();
+                            d.type = StructType.P1;
+                            l.setType(Type.STATEMENT);
+                            l.setStatement("");
+                            d.setStruct(l);
+                            for (int k = j; k < i; k++) {
+                                l.setStatement(l.getStatement() + "\r\n" + list.get(k).getStruct().getStatement());
+                                list.set(k, null);
+                            }
+                            list.set(j, d);
+                        }
+                        found = false;
+                    }
+                } else if (i < list.size()) {
+                    if (list.get(i).type == StructType.P1) {
+                        found = true;
+                        j = i;
+                    }
+                }
+            }
+            for (int i = list.size() - 1; i >= 0; i--) {
+                if (list.get(i) == null) {
+                    list.remove(i);
+                }
+            }
+        } else if (type == StructType.D1) {
+            body1.condense();
+            body2.condense();
+        } else if (type != StructType.P1) {
+            body1.condense();
+        }
+    }
+
     public ControlFlowNode whileFlow(ControlFlowNode out) {
         ControlFlowNode condition = new ControlFlowNode();
         ControlFlowNode body = body1.flow(condition);
@@ -203,14 +245,11 @@ public class DStructure {
 
     public ControlFlowNode pnFlow(ControlFlowNode out) {
         int i = list.size() - 1;
-        ControlFlowNode c;
         do {
-            c = list.get(i).flow(out);
-//            c.setOut(out);
-            out = c;
+            out = list.get(i).flow(out);
             i--;
         } while (i >= 0);
-        return c;
+        return out;
     }
 
     public ControlFlowNode d1Flow(ControlFlowNode out) {
