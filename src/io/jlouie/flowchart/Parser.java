@@ -35,20 +35,18 @@ public class Parser {
         try {
             String content = new Scanner(new File(args[0])).useDelimiter("\\Z").next();
             content = Preprocess.removeComments(Preprocess.linuxEnding(content));
-            Code code = new Code(content);
-            DStructure struct = code.getStructure();
+            CodeBlock code = new CodeBlock();
+            code.makeFunction(content);
+            DStructure struct = code.dStructure();
             if (struct == null) {
                 System.out.println("Error in parsing.");
                 return;
             }
-            struct.condense();
+//            struct.condense();
             struct.print(0);
             ControlFlowNode cfn = struct.flow(null);
             labelAndCountNodes(cfn);
-//            cfn = combineP1_2(cfn);
-            PrintWriter writer = new PrintWriter(args[0] + ".graphml", "UTF-8");
-            writer.println(xmlgraph(cfn));
-            writer.close();
+            saveXml(args[0] + ".graphml", xmlgraph(cfn));
         } catch (FileNotFoundException ex) {
             System.out.println("Error reading file.");
         } catch (UnsupportedEncodingException ex) {
@@ -56,44 +54,10 @@ public class Parser {
         }
     }
 
-    private static ControlFlowNode combineP1(ControlFlowNode[] list) {
-        for (ControlFlowNode c : list) {
-            if (c.getType() == FlowType.PROCEDURE && c.getOut() != null && c.getOut().getType() == FlowType.PROCEDURE) {
-                ControlFlowNode x = new ControlFlowNode();
-                x.setType(FlowType.PROCEDURE);
-                x.setOut(c.getOut().getOut());
-                x.setContent(c.getContent() + "\n" + c.getOut().getContent());
-                for (ControlFlowNode c2 : list) {
-                    if (c2.getOut() == c) {
-                        c2.setOut(x);
-                    }
-                    if (c2.getTrueOut() == c) {
-                        c2.setTrueOut(x);
-                    }
-                    if (c2.getFalseOut() == c) {
-                        c2.setFalseOut(x);
-                    }
-                }
-                if (list[0] == c) {
-                    return x;
-                } else {
-                    return list[0];
-                }
-            }
-        }
-        return list[0];
-    }
-
-    private static ControlFlowNode combineP1_2(ControlFlowNode origin) {
-        boolean change;
-        ControlFlowNode[] cfNodes = listFromOrigin(origin);
-        do {
-            int size = cfNodes.length;
-            origin = combineP1(cfNodes);
-            cfNodes = listFromOrigin(origin);
-            change = size > cfNodes.length;
-        } while (change);
-        return origin;
+    private static void saveXml(String filename, String contents) throws FileNotFoundException, UnsupportedEncodingException {
+        PrintWriter writer = new PrintWriter(filename, "UTF-8");
+        writer.print(contents);
+        writer.close();
     }
 
     public static String node(String label, String id) {

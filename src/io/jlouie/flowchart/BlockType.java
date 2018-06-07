@@ -20,6 +20,6 @@ package io.jlouie.flowchart;
  *
  * @author Johnathan Louie
  */
-public enum StructType {
-    P1, Pn, D0, D1, D2, D3, Empty
+public enum BlockType {
+    FOR, WHILE, DOWHILE, STATEMENT, IF, IFELSE, FUNCTION;
 }

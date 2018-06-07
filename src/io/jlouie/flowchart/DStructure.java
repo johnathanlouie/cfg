@@ -24,13 +24,13 @@ import java.util.LinkedList;
  */
 public class DStructure {
 
-    private StructType type;
+    private StructureType type;
     private final LinkedList<DStructure> list = new LinkedList<>();
     private DStructure body1;
     private DStructure body2;
-    private LanguageConstruct struct;
+    private CodeBlock struct;
 
-    public StructType getType() {
+    public StructureType getType() {
         return type;
     }
 
@@ -46,15 +46,15 @@ public class DStructure {
         return list.size();
     }
 
-    public void setType(StructType type) {
+    public void setType(StructureType type) {
         this.type = type;
     }
 
-    public LanguageConstruct getStruct() {
+    public CodeBlock getStruct() {
         return struct;
     }
 
-    public void setStruct(LanguageConstruct struct) {
+    public void setStruct(CodeBlock struct) {
         this.struct = struct;
     }
 
@@ -130,52 +130,53 @@ public class DStructure {
 
     public ControlFlowNode flow(ControlFlowNode out) {
         switch (type) {
+            case P0:
+                return flowP0(out);
             case P1:
-                return p1Flow(out);
+                return flowP1(out);
             case Pn:
-                return pnFlow(out);
+                return flowPn(out);
             case D0:
-                return d0Flow(out);
+                return flowD0(out);
             case D1:
-                return d1Flow(out);
+                return flowD1(out);
             case D2:
-                if (struct.getType() == Type.WHILE) {
-                    return whileFlow(out);
-                } else if (struct.getType() == Type.FOR) {
-                    return forFlow(out);
+                if (struct.getType() == BlockType.WHILE) {
+                    return flowD2While(out);
+                } else if (struct.getType() == BlockType.FOR) {
+                    return flowD2For(out);
                 }
             case D3:
-                return d3Flow(out);
+                return flowD3(out);
             default:
-                System.out.println("flow() unexpected null");
-                return null;
+                throw new RuntimeException();
         }
     }
 
     public void condense() {
-        if (type == StructType.Pn) {
+        if (type == StructureType.Pn) {
             boolean found = false;
             int j = 0;
             for (int i = 0; i <= list.size(); i++) {
                 if (found) {
-                    if (i == list.size() || list.get(i).type != StructType.P1) {
+                    if (i == list.size() || list.get(i).type != StructureType.P1) {
                         if (i - j > 1) {
                             DStructure d = new DStructure();
-                            LanguageConstruct l = new LanguageConstruct();
-                            d.type = StructType.P1;
-                            l.setType(Type.STATEMENT);
-                            l.setStatement("");
+                            CodeBlock l = new CodeBlock();
+                            d.type = StructureType.P1;
+                            String x = "";
                             d.setStruct(l);
                             for (int k = j; k < i; k++) {
-                                l.setStatement(l.getStatement() + "\r\n" + list.get(k).getStruct().getStatement());
+                                x += l.getStatement() + "\r\n" + list.get(k).getStruct().getStatement();
                                 list.set(k, null);
                             }
+                            l.makeStatement(x);
                             list.set(j, d);
                         }
                         found = false;
                     }
                 } else if (i < list.size()) {
-                    if (list.get(i).type == StructType.P1) {
+                    if (list.get(i).type == StructureType.P1) {
                         found = true;
                         j = i;
                     }
@@ -186,15 +187,15 @@ public class DStructure {
                     list.remove(i);
                 }
             }
-        } else if (type == StructType.D1) {
+        } else if (type == StructureType.D1) {
             body1.condense();
             body2.condense();
-        } else if (type != StructType.P1) {
+        } else if (type != StructureType.P1) {
             body1.condense();
         }
     }
 
-    public ControlFlowNode whileFlow(ControlFlowNode out) {
+    private ControlFlowNode flowD2While(ControlFlowNode out) {
         ControlFlowNode condition = new ControlFlowNode();
         ControlFlowNode body = body1.flow(condition);
         condition.setType(FlowType.PREDICATE);
@@ -204,7 +205,7 @@ public class DStructure {
         return condition;
     }
 
-    public ControlFlowNode forFlow(ControlFlowNode out) {
+    private ControlFlowNode flowD2For(ControlFlowNode out) {
         ControlFlowNode inc = new ControlFlowNode();
         ControlFlowNode condition = new ControlFlowNode();
         ControlFlowNode init = new ControlFlowNode();
@@ -225,7 +226,7 @@ public class DStructure {
         return init;
     }
 
-    public ControlFlowNode d3Flow(ControlFlowNode out) {
+    private ControlFlowNode flowD3(ControlFlowNode out) {
         ControlFlowNode condition = new ControlFlowNode();
         ControlFlowNode body = body1.flow(condition);
         condition.setType(FlowType.PREDICATE);
@@ -235,7 +236,11 @@ public class DStructure {
         return body;
     }
 
-    public ControlFlowNode p1Flow(ControlFlowNode out) {
+    private ControlFlowNode flowP0(ControlFlowNode out) {
+        return out;
+    }
+
+    private ControlFlowNode flowP1(ControlFlowNode out) {
         ControlFlowNode c = new ControlFlowNode();
         c.setType(FlowType.PROCEDURE);
         c.setContent(struct.getStatement());
@@ -243,7 +248,7 @@ public class DStructure {
         return c;
     }
 
-    public ControlFlowNode pnFlow(ControlFlowNode out) {
+    private ControlFlowNode flowPn(ControlFlowNode out) {
         int i = list.size() - 1;
         do {
             out = list.get(i).flow(out);
@@ -252,7 +257,7 @@ public class DStructure {
         return out;
     }
 
-    public ControlFlowNode d1Flow(ControlFlowNode out) {
+    private ControlFlowNode flowD1(ControlFlowNode out) {
         ControlFlowNode ifBody = body1.flow(out);
         ControlFlowNode elseBody = body2.flow(out);
         ControlFlowNode condition = new ControlFlowNode();
@@ -263,7 +268,7 @@ public class DStructure {
         return condition;
     }
 
-    public ControlFlowNode d0Flow(ControlFlowNode out) {
+    private ControlFlowNode flowD0(ControlFlowNode out) {
         ControlFlowNode body = body1.flow(out);
         ControlFlowNode condition = new ControlFlowNode();
         condition.setType(FlowType.PREDICATE);
